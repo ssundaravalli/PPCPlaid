@@ -1,1 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Paypal Plaid Test Integration</title>
+<link rel="stylesheet" href="https://threads.plaid.com/threads.css">
 
+<link rel="stylesheet" type="text/css" href="style.css">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+<body>
+  <main class="main">
+    <div class="grid">
+      <div class="grid__column grid__column--is-twelve-columns">
+        <div id="banner" class="everpresent-content">
+          <h1 class="everpresent-content__heading">Paypal Plaid Test Integration</h1>
+          <p id="intro" class="everpresent-content__subheading">
+            An example application that outlines an end-to-end integration with Plaid
+          </p>
+          <p id="steps" class="everpresent-content__subheading">
+           Success! You just created an Item by linking your account.
+          </p>
+        </div>
+
+        <div id="container" class="initial-view">
+          <p class="initial-view__description">
+            Click the button below to open a list of Institutions. After you select one, you’ll be guided through an authentication process. Upon completion, a public_token will be passed back to the server and exchanged for access_token.
+          </p>
+
+          <button id="link-btn" class="button button--is-primary" disabled>Connect with Plaid</button>
+          <div class="loading-indicator"></div>
+        </div>
+
+        <div id="app" class="connected-view">
+          <div class="item-overview">
+            <div class="item-overview__column">
+              <h3 class="item-overview__heading">item_id</h3>
+              <p class="item-overview__id" id="item_id">san.asjsansakjsakjasjksajkas</p>
+            </div>
+            <div class="item-overview__column">
+              <h3 class="item-overview__heading">access_token</h3>
+              <p class="item-overview__id" id="access_token">••••••••hsakjsl</p>
+            </div>
+            <!-- This functionality is only relevant for the UK Payment Initiation product. -->
+            <div class="payment_initiation item-overview__column" style='display:none;'>
+              <h3 class="item-overview__heading">payment_token</h3>
+              <p class="item-overview__id" id="payment_token">••••••••hsakjsl</p>
+            </div>
+
+            <div style="clear: both"></div>
+          </div>
+
+          <p>Now that you have an access_token you can make all of the following API requests:</p>
+
+          <div class="box">
+
+            <h3 class="box__heading">Products</h3>
+
+            <!-- Auth -->
+            <div class="item-data-row">
+              <div class="item-data-row__left">
+                <div class="item-data-row__request-type">post</div>
+              </div>
+              <div class="item-data-row__center">
+                <div class="item-data-row__nicename">SBA</div>
+                <div class="item-data-row__endpoint">/sba/verification/get</div>
+                <div class="item-data-row__description">Retrieve SBA account and employee details.</div>
+              </div>
+              <div class="item-data-row__right">
+                <button id="get-auth-btn" class="button button--is-small button--is-default button--is-full-width">Send request</button>
+              </div>
+              <div class="item-data-row__response">
+                <table><tbody id="get-auth-data"></tbody></table>
+              </div>
+            </div>
+
+
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/2.2.3/jquery.min.js"></script>
+  <script src="https://cdn.plaid.com/link/v2/stable/link-initialize.js"></script>
+  <script>
+  (function($) {
+    // Handles redirect from the oauth response page for the oauth flow.
+    if (document.referrer != null && document.referrer.includes('http://localhost:8000/oauth-response.html')) {
+      $('#container').fadeOut('fast', function() {
+        $('#item_id').text('<%= ITEM_ID %>');
+        $('#access_token').text('<%= ACCESS_TOKEN %>');
+        $('#intro').hide();
+        $('#app, #steps').fadeIn('slow');
+      });
+    }
+
+
+    var products = '<%= PLAID_PRODUCTS %>'.split(',');
+    if (products.includes('assets')) {
+      $('#assets').show();
+    }
+
+    var linkHandlerCommonOptions = {
+      apiVersion: 'v2',
+      clientName: 'Plaid Quickstart',
+      env: '<%= PLAID_ENV %>',
+      product: products,
+      key: '<%= PLAID_PUBLIC_KEY %>',
+      countryCodes: '<%= PLAID_COUNTRY_CODES %>'.split(','),
+    };
+    var oauthRedirectUri = '<%= PLAID_OAUTH_REDIRECT_URI %>';
+    if (oauthRedirectUri != '') {
+      linkHandlerCommonOptions.oauthRedirectUri = oauthRedirectUri;
+    }
+    var oauthNonce = '<%= PLAID_OAUTH_NONCE %>';
+    if (oauthNonce != '') {
+      linkHandlerCommonOptions.oauthNonce = oauthNonce;
+    }
+    // This functionality is only relevant for the UK Payment Initiation product.
+    if (products.includes('payment_initiation')) {
+      $('.payment_initiation').show();
+      $.post('/set_payment_token', {}, function(data) {
+        var paymentToken = data.paymentToken;
+        $('#payment_token').text(paymentToken);
+
+        // In the case of payment_initiation product, we need to wait for
+        // payment token to be generated before the Link handler can be
+        // initialized.
+        handler = Plaid.create({
+          ...linkHandlerCommonOptions,
+          paymentToken: paymentToken,
+          language: 'en',
+          onSuccess: function(public_token) {
+            // This public token exchange step is not relevant for the
+            // payment_initiation product and should be skipped.
+            $.post('/get_access_token', {
+              public_token: public_token
+            }, function(data) {
+              $('#container').fadeOut('fast', function() {
+                $('#item_id').text(data.item_id);
+                $('#access_token').text(data.access_token);
+                $('#intro').hide();
+                $('#app, #steps').fadeIn('slow');
+              });
+            });
+          },
+        });
+        $('#link-btn').attr('disabled', false);
+        $('.loading-indicator').hide();
+      });
+    } else {
+      var handler = Plaid.create({
+        ...linkHandlerCommonOptions,
+        // webhook: 'https://your-domain.tld/plaid-webhook',
+        onSuccess: function(public_token) {
+          $.post('/get_access_token', {
+            public_token: public_token
+          }, function(data) {
+            $('#container').fadeOut('fast', function() {
+              $('#item_id').text(data.item_id);
+              $('#access_token').text(data.access_token);
+              $('#intro').hide();
+              $('#app, #steps').fadeIn('slow');
+            });
+          });
+        },
+      });
+      $('#link-btn').attr('disabled', false);
+      $('.loading-indicator').hide();
+    }
+
+    var accessToken = qs('access_token');
+    if (accessToken != null && accessToken != '') {
+      $.post('/set_access_token', {
+        access_token: accessToken
+      }, function(data) {
+        $('#container').fadeOut('fast', function() {
+          $('#item_id').text(data.item_id);
+          $('#access_token').text(accessToken);
+          $('#intro').hide();
+          $('#app, #steps').fadeIn('slow');
+        });
+      });
+    }
+
+    $('#link-btn').on('click', function(e) {
+      handler.open();
+    });
+
+    $('#get-accounts-btn').on('click', function(e) {
+      $.get('/accounts', function(data) {
+
+        $('#get-accounts-data').slideUp(function() {
+          if (data.error != null) {
+            displayError(this, data.error);
+            return;
+          }
+          var html = '<tr><td><strong>Name</strong></td><td><strong>Balances</strong></td><td><strong>Subtype</strong></td><td><strong>Mask</strong></td></tr>';
+          data.accounts.accounts.forEach(function(account, idx) {
+            html += '<tr>';
+            html += '<td>' + account.name + '</td>';
+            html += '<td>$' + (account.balances.available != null ? account.balances.available : account.balances.current) + '</td>';
+            html += '<td>' + account.subtype + '</td>';
+            html += '<td>' + account.mask + '</td>';
+            html += '</tr>';
+          });
+
+          $(this).html(html).slideDown();
+        });
+      });
+    });
+
+    $('#get-auth-btn').on('click', function(e) {
+      $.get('/sba', function(data) {
+        $('#get-auth-data').slideUp(function() {
+          if (data.error != null) {
+            displayError(this, data.error);
+            return;
+          }
+          var authData = data.auth;
+
+          var html = '<tr><td><strong>SBAVerificationData</strong></td>';
+              html += '<tr>';
+              html += '<td>' + authData + '</td>';
+              html += '<tr>';
+	      html += '<textarea id="yourTextArea"> authData </textarea>';
+              html += '</tr>';
+	  console.log('html :'+html); 
+          $(this).html(html).slideDown();
+        });
+      });
+    });
+
+
+
+
+  })(jQuery);
+
+function qs(key) {
+    key = key.replace(/[*+?^$.\[\]{}()|\\\/]/g, "\\$&"); // escape RegEx meta chars
+    var match = location.search.match(new RegExp("[?&]"+key+"=([^&]+)(&|$)"));
+    return match && decodeURIComponent(match[1].replace(/\+/g, " "));
+}
+
+function displayError(element, error) {
+  var html = `
+    <div class="alert alert-danger">
+      <p><strong>Error Code:</strong> ${error.error_code}</p>
+      <p><strong>Error Type:</strong> ${error.error_type}</p>
+      <p><strong>Error Message:</strong> ${error.display_message == null ? error.error_message : error.display_message}</p>
+      <div>Check out our <a href="https://plaid.com/docs/#errors-overview">errors documentation</a> for more information.</div>
+    </div>`;
+  $(element).html(html).slideDown();
+}
+  </script>
+</body>
+</html>
