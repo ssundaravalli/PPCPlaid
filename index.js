@@ -171,7 +171,7 @@ const makeApiRequest = (method, opts, callback) => {
     });
 
 };
-var server = app.listen(APP_PORT, function() {
+var server = app.listen(process.env.PORT || 3000, function() {
   console.log('plaid-quickstart server listening on port ' + APP_PORT);
 });
 
