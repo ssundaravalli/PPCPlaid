@@ -226,17 +226,19 @@
             html += '<td>' + data.auth.employee_count + '</td>';
             html += '<td>' + data.auth.annual_average_monthly_payroll+ '</td>';
             html += '</tr>';
+            html += '<tr><td><strong>Date</strong></td><td><strong>Earnings</strong></td><td><strong>EmployeeFederalTaxes</strong></td></tr>';
+            data.auth.payroll_transactions.forEach(function(account, idx) {
             html += '<tr>';
-            html += '<td>' + data.auth+ '</td>';
-            html += '<tr>';
-          });
-
+            html += '<td>' + account.date + '</td>';
+            html += '<td>' + account.earnings+ '</td>';
+            html += '<td>' + account.employee_federal_taxes  + '</td>';
+            html += '</tr>';
+            });
           console.log('html :'+html);
           $(this).html(html).slideDown();
         });
       });
-
-
+      });
 
 
 
