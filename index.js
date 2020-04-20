@@ -12,8 +12,8 @@ var httpunch = require('httpunch');
 
 var APP_PORT = envvar.number('APP_PORT', 3000);
 var PLAID_CLIENT_ID = '5e91014bc2c21f001155807c'; 
-var PLAID_SECRET = '2198a573bb96c08efd0c3dd3e9c774'; 
-var PLAID_PUBLIC_KEY = 'f8fbe722d649bae624cc17be65acea' 
+var PLAID_SECRET = ''; 
+var PLAID_PUBLIC_KEY = '' 
 var PLAID_ENV =  'sandbox';
 // PLAID_PRODUCTS is a comma-separated list of products to use when initializing
 // Link. Note that this list must contain 'assets' in order for the app to be
