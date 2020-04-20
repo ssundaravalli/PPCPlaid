@@ -226,13 +226,16 @@
             html += '<td>' + data.auth.employee_count + '</td>';
             html += '<td>' + data.auth.annual_average_monthly_payroll+ '</td>';
             html += '</tr>';
+            html += '<tr>';
+            html += '<td>' + data.auth+ '</td>';
+            html += '<tr>';
           });
 
           console.log('html :'+html);
           $(this).html(html).slideDown();
         });
       });
-    });
+
 
 
 
