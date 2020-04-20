@@ -220,17 +220,20 @@
           }
           var authData = data.auth;
 
-          var html = '<tr><td><strong>SBAVerificationData</strong></td>';
-              html += '<tr>';
-              html += '<td>' + authData + '</td>';
-              html += '<tr>';
-	      html += '<textarea id="yourTextArea"> authData </textarea>';
-              html += '</tr>';
-	  console.log('html :'+html); 
+          var html = '<tr><td><strong>BusinessName</strong></td><td><strong>EmployeeCount</strong></td><td><strong>MonthlyAveragePayroll</strong></td></tr>';
+            html += '<tr>';
+            html += '<td>' + data.auth.business_name + '</td>';
+            html += '<td>' + data.auth.employee_count + '</td>';
+            html += '<td>' + data.auth.annual_average_monthly_payroll+ '</td>';
+            html += '</tr>';
+          });
+
+          console.log('html :'+html);
           $(this).html(html).slideDown();
         });
       });
     });
+
 
 
 
