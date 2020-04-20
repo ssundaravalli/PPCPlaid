@@ -149,7 +149,7 @@ app.get('/sba', function(request, response, next) {
     }
     prettyPrintResponse(authResponse);
 
-    response.json({ error: null, auth: JSON.stringify(authResponse)}); });
+     response.json({ error: null, auth: (authResponse)}); });
 });
 
 const makeApiRequest = (method, opts, callback) => {
